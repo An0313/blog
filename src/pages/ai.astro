@@ -14,7 +14,12 @@ const aiPosts = allPosts.filter(p => p.data.tags?.includes('ai'));
 const aiFeedSources = feeds.filter(f => ['机器之心', 'Latent Space'].includes(f.name));
 const aiFeedItems = (await Promise.all(aiFeedSources.map(f => fetchFeed(f))))
   .flat()
-  .sort((a, b) => b.date.getTime() - a.date.getTime())
+  .sort((a, b) => {
+    if (a.date && b.date) return b.date.getTime() - a.date.getTime();
+    if (a.date) return -1;
+    if (b.date) return 1;
+    return 0;
+  })
   .slice(0, 6);
 
 // Prompt 实战库 (拿来就能用)

@@ -21,7 +21,7 @@ const canonical = permalink || `/${post.id}/`;
       <div class="post-meta">
         <time datetime={date.toISOString()}>发表于 {dateStr}</time>
         {updatedStr && updatedStr !== dateStr && (
-          <time datetime={updated.toISOString()}>更新于 {updatedStr}</time>
+          <time datetime={updated!.toISOString()}>更新于 {updatedStr}</time>
         )}
         {tags.length > 0 && (
           <span class="post-item-tags">

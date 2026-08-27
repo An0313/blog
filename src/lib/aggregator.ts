@@ -45,7 +45,7 @@ export async function fetchAllFeeds(sources: FeedSource[]): Promise<FeedItem[]> 
 
 // cheerio 解析 RSS 2.0 与 Atom, 容错处理
 function parseFeed(source: FeedSource, xml: string): FeedItem[] {
-  const $ = load(xml, { xml: true, decodeEntities: true });
+  const $ = load(xml, { xml: true });
   const items: FeedItem[] = [];
 
   // Atom: feed > entry, <link href="..."/>, <title>, <published>/<updated>
