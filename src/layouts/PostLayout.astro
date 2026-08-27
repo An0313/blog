@@ -1,0 +1,55 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  post: CollectionEntry<'posts'>;
+  prev?: CollectionEntry<'posts'> | null;
+  next?: CollectionEntry<'posts'> | null;
+}
+const { post, prev, next } = Astro.props;
+const { title, date, updated, tags, description, permalink } = post.data;
+
+const dateStr = date.toISOString().slice(0, 10);
+const updatedStr = updated ? updated.toISOString().slice(0, 10) : '';
+const canonical = permalink || `/${post.id}/`;
+---
+<BaseLayout title={`${title} | An0313`} description={description} permalink={canonical}>
+  <article class="post-detail">
+    <header class="post-header">
+      <h1>{title}</h1>
+      <div class="post-meta">
+        <time datetime={date.toISOString()}>发表于 {dateStr}</time>
+        {updatedStr && updatedStr !== dateStr && (
+          <time datetime={updated.toISOString()}>更新于 {updatedStr}</time>
+        )}
+        {tags.length > 0 && (
+          <span class="post-item-tags">
+            {tags.map(t => <a class="tag-chip" href={`/tags/${encodeURIComponent(t)}/`}>{t}</a>)}
+          </span>
+        )}
+      </div>
+    </header>
+
+    <div class="prose">
+      <slot />
+    </div>
+
+    <footer class="post-footer">
+      {(prev || next) && (
+        <nav class="post-nav">
+          <div>
+            {prev && (
+              <a href={prev.data.permalink || `/${prev.id}/`} rel="prev">← {prev.data.title}</a>
+            )}
+          </div>
+          <div>
+            {next && (
+              <a href={next.data.permalink || `/${next.id}/`} rel="next">{next.data.title} →</a>
+            )}
+          </div>
+        </nav>
+      )}
+    </footer>
+  </article>
+</BaseLayout>

@@ -1,0 +1,154 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import { fetchFeed, fmtDate } from '../lib/aggregator';
+import { feeds } from '../config/feeds';
+
+// 找 AI 相关文章 (tag 含 ai)
+const allPosts = (await getCollection('posts')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime()
+);
+const aiPosts = allPosts.filter(p => p.data.tags?.includes('ai'));
+
+// 最新 AI 模型动态 (从 AI 源拉取, 失败兜底空)
+const aiFeedSources = feeds.filter(f => ['机器之心', 'Latent Space'].includes(f.name));
+const aiFeedItems = (await Promise.all(aiFeedSources.map(f => fetchFeed(f))))
+  .flat()
+  .sort((a, b) => b.date.getTime() - a.date.getTime())
+  .slice(0, 6);
+
+// Prompt 实战库 (拿来就能用)
+const prompts = [
+  { scene: '重构', tmpl: `把这个函数重构成职责单一的子函数,保持行为不变。要求:
+- 每个子函数 < 30 行
+- 命名表达意图,不写 data/obj 这种
+- 不改变对外接口
+- 列出重构后可能引入的风险` },
+  { scene: '测试', tmpl: `为这个函数生成测试用例。要求:
+- 覆盖 happy path 和边界(空值/越界/并发)
+- 用 describe/it 组织
+- 标注哪些边界你可能漏了,让我补` },
+  { scene: '文档', tmpl: `为这个模块写 API 文档。要求:
+- 每个导出函数:参数/返回/异常/示例
+- 不写废话,每句要有信息量
+- 标注你不确定的地方,我校准` },
+  { scene: '调试', tmpl: `这段代码报错:[贴报错]。现象:[贴现象]。请:
+- 列出可能原因,按概率排序
+- 给每个原因的验证方法
+- 不要直接改代码,先帮我定位` },
+  { scene: '性能优化', tmpl: `分析这段代码的渲染/性能瓶颈:[贴代码]。现象:[帧率/耗时/内存]。要求:
+- 不要泛泛说"用 memo",定位到具体哪行/哪个状态触发重渲染
+- 给每个怀疑点的验证方法(Profiler 埋点 / Performance trace)
+- 按"改动成本 vs 收益"排序,不堆优化清单` },
+  { scene: 'Code Review', tmpl: `Review 这段 AI 生成(或同事提交)的代码:[贴代码]。要求:
+- 标注确定的 bug / 安全问题(带行号)
+- 标注潜在风险(边界 / 并发 / 内存泄漏)并说明触发条件
+- 不评风格,只看正确性和健壮性
+- 拿不准的标"待确认",不要硬编` },
+  { scene: '技术选型', tmpl: `我要在 [场景] 里做 [需求],候选方案 [A/B/C]。要求:
+- 不要罗列特性对比表,直接给"这个场景下选谁,为什么"
+- 列每个方案在本场景的致命短板
+- 有更优解就直接提,说明前置条件` },
+  { scene: '读源码', tmpl: `我要快速理解这个陌生模块:[贴源码/仓库]。要求:
+- 先讲对外契约(输入/输出/副作用),不讲实现细节
+- 标出"读的时候容易踩的坑"
+- 列 3 条最关键的调用路径,每条一句话讲清
+- 不要逐行翻译` },
+  { scene: 'API 设计', tmpl: `为 [需求] 设计一个对内公共 API。要求:
+- 先给调用方代码长什么样(用法先行),再给实现
+- 标注哪些参数你不确定该必填还是可选,说明取舍
+- 列出 3 个会让这个 API 用着难受的真实场景` },
+  { scene: '需求拆解', tmpl: `这个需求:[贴需求]。帮我把能动的拆成可独立交付的子任务。要求:
+- 每个子任务 < 1 天,带验收标准
+- 标出哪些子任务依赖人工确认/产品决策,不能直接做
+- 标出哪些子任务我可以交给 AI 起草
+- 不要把"全程怎么做"写一遍,只要可并行的单元` },
+];
+---
+<BaseLayout title="AI 工作流 | An0313" description="AI 辅助开发的 Prompt 实战与最新模型动态">
+  <div class="ai-page">
+    <h1 class="page-title">AI 工作流</h1>
+    <p class="page-lead">
+      2025 年起主力用 AI 辅助开发。这里不罗列工具常识,只放能用的东西——Prompt 实战模板和最新模型动态。详细的工程化思考见<a href="/2025/03/12/ai辅助开发的工程化边界/" style="color:var(--accent);text-decoration:underline;">这篇深度文</a>。
+    </p>
+
+    {aiFeedItems.length > 0 && (
+      <section class="ai-section">
+        <h2 class="section-title">最新模型动态</h2>
+        <div class="ai-feed-list">
+          {aiFeedItems.map(item => (
+            <a class="ai-feed-item" href={item.link} target="_blank" rel="noopener">
+              <span class="ai-feed-source">{item.source}</span>
+              <span class="ai-feed-title">{item.title}</span>
+              <time class="ai-feed-date">{fmtDate(item.date)}</time>
+            </a>
+          ))}
+        </div>
+        <p class="ai-note">聚合自机器之心、Latent Space,每次构建自动刷新。持续跟 AI 模型动态,而非一次性。</p>
+      </section>
+    )}
+
+    <section class="ai-section">
+      <h2 class="section-title">Prompt 实战库</h2>
+      <p class="ai-note" style="margin-bottom:16px;">拿来就能用的 prompt 模板。核心:说意图不说步骤,要求 AI 列风险/边界/不确定,让产出可校验。</p>
+      <div class="prompt-list">
+        {prompts.map(p => (
+          <div class="prompt-card">
+            <div class="prompt-scene">{p.scene}</div>
+            <pre class="prompt-tmpl"><code>{p.tmpl}</code></pre>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {aiPosts.length > 0 && (
+      <section class="ai-section">
+        <h2 class="section-title">相关文章</h2>
+        <div class="ai-posts">
+          {aiPosts.map(p => (
+            <a class="ai-post" href={p.data.permalink}>
+              <div class="ai-post-title">{p.data.title}</div>
+              <div class="ai-post-desc">{p.data.description}</div>
+              <time class="ai-post-date">{p.data.date.toISOString().slice(0,10)}</time>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+</BaseLayout>
+
+<style>
+.ai-page { max-width: 880px; margin: 0 auto; padding: 64px 24px 96px; }
+.page-title { font-family: 'Source Serif 4', 'Noto Serif SC', serif; font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+.page-lead { color: var(--fg-soft); font-size: 1.05rem; line-height: 1.7; margin-bottom: 56px; max-width: 680px; }
+.page-lead a { font-weight: 500; }
+.ai-section { margin-bottom: 56px; }
+.section-title { font-size: 1.3rem; font-weight: 600; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.ai-note { margin-top: 16px; color: var(--fg-muted); font-size: .85rem; line-height: 1.6; }
+/* 最新模型动态 */
+.ai-feed-list { display: flex; flex-direction: column; gap: 8px; }
+.ai-feed-item { display: grid; grid-template-columns: 80px 1fr auto; gap: 12px; align-items: center; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; text-decoration: none; color: inherit; transition: border-color .15s; }
+.ai-feed-item:hover { border-color: var(--accent); }
+.ai-feed-source { color: var(--accent); font-size: .74rem; font-weight: 600; }
+.ai-feed-title { font-size: .88rem; color: var(--fg-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-feed-date { color: var(--fg-muted); font-size: .74rem; }
+/* Prompt 库 */
+.prompt-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 12px; }
+.prompt-card { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.prompt-scene { padding: 8px 14px; background: var(--accent); color: #fff; font-size: .78rem; font-weight: 600; letter-spacing: .03em; }
+.prompt-tmpl { margin: 0; padding: 14px 16px; background: var(--bg-soft); overflow-x: auto; }
+.prompt-tmpl code { font-family: 'JetBrains Mono', monospace; font-size: .8rem; line-height: 1.6; color: var(--fg-soft); white-space: pre; }
+/* 相关文章 */
+.ai-posts { display: flex; flex-direction: column; gap: 12px; }
+.ai-post { display: block; padding: 16px 18px; border: 1px solid var(--border); border-radius: 8px; text-decoration: none; color: inherit; transition: border-color .15s; }
+.ai-post:hover { border-color: var(--accent); }
+.ai-post-title { font-weight: 600; font-size: .98rem; margin-bottom: 4px; }
+.ai-post-desc { color: var(--fg-muted); font-size: .85rem; line-height: 1.55; margin-bottom: 6px; }
+.ai-post-date { color: var(--fg-muted); font-size: .78rem; }
+@media (max-width: 600px) {
+  .ai-feed-item { grid-template-columns: 1fr; gap: 4px; }
+  .ai-feed-title { white-space: normal; }
+  .prompt-list { grid-template-columns: 1fr; }
+}
+</style>

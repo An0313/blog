@@ -1,0 +1,65 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import FeedStrip from '../components/FeedStrip.astro';
+import { fetchAllFeeds } from '../lib/aggregator';
+import { feeds } from '../config/feeds';
+
+// 精选 = 最新 5 篇 (按日期倒序); 后续可在 front-matter 加 featured: true 字段做人工精选
+const allPosts = (await getCollection('posts')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime()
+);
+const featured = allPosts.slice(0, 5);
+
+// build 时拉取行业资讯, 失败兜底空数组
+const feedItems = await fetchAllFeeds(feeds);
+const latestFeeds = feedItems.slice(0, 5);
+---
+<BaseLayout title="An0313 | 前端工程师 · 工程化方向">
+  <Hero />
+
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">近期写作</h2>
+      <a class="section-more" href="/archives/">全部归档 →</a>
+    </div>
+    <div class="featured-list">
+      {featured.map(post => (
+        <a class="featured-item" href={post.data.permalink || `/${post.id}/`}>
+          <div class="featured-item-title">{post.data.title}</div>
+          {post.data.description && <div class="featured-item-desc">{post.data.description}</div>}
+          <div class="featured-item-meta">
+            <time datetime={post.data.date.toISOString()}>{post.data.date.toISOString().slice(0, 10)}</time>
+            {post.data.tags.slice(0, 3).map(t => <span>{t}</span>)}
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">AI 工作流</h2>
+      <a class="section-more" href="/ai/">查看详情 →</a>
+    </div>
+    <a href="/ai/" style="display:block;padding:18px 20px;border:1px solid var(--border);border-radius:8px;text-decoration:none;color:inherit;background:var(--bg-soft);">
+      <div style="font-size:.92rem;color:var(--fg-soft);line-height:1.65;margin-bottom:14px;">2025 年起主力用 AI 辅助开发。这里不罗列工具,只放能直接用的东西。</div>
+      <ul style="list-style:none;padding:0;margin:0;display:grid;gap:8px;">
+        <li style="font-size:.86rem;color:var(--fg-soft);line-height:1.55;"><strong style="color:var(--fg);font-weight:600;">Prompt 实战库</strong> · 重构 / 测试 / 文档 / 调试,拿来即用模板</li>
+        <li style="font-size:.86rem;color:var(--fg-soft);line-height:1.55;"><strong style="color:var(--fg);font-weight:600;">最新模型动态</strong> · 机器之心 / Latent Space 聚合,构建自动刷新</li>
+      </ul>
+    </a>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">行业动态</h2>
+      <a class="section-more" href="/industry/">查看全部 →</a>
+    </div>
+    <FeedStrip items={latestFeeds} limit={5} />
+    <p style="font-size:.78rem;color:var(--fg-muted);margin-top:12px;">
+      聚合自阮一峰、web.dev、V8、CSS-Tricks、JS Weekly、Hacker News 等, 每次 build 自动刷新。
+    </p>
+  </section>
+</BaseLayout>

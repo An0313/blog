@@ -1,0 +1,21 @@
+---
+import type { FeedItem } from '../lib/aggregator';
+import { fmtDate } from '../lib/aggregator';
+
+interface Props { items: FeedItem[]; limit?: number }
+const { items, limit = 5 } = Astro.props;
+const list = items.slice(0, limit);
+---
+{list.length === 0 ? (
+  <p style="color:var(--fg-muted);font-size:.85rem;padding:12px 0;">资讯源拉取中或暂时不可达,稍后访问 <a href="/industry/">资讯页</a> 查看完整列表。</p>
+) : (
+  <div class="feed-strip">
+    {list.map(item => (
+      <a class="feed-item" href={item.link} target="_blank" rel="noopener">
+        <span class="feed-source">{item.source}</span>
+        <span class="feed-title">{item.title}</span>
+        <span class="feed-date">{fmtDate(item.date)}</span>
+      </a>
+    ))}
+  </div>
+)}

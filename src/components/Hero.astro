@@ -1,0 +1,19 @@
+---
+import { site } from '../config/site';
+const { eyebrow, title, sub, techStack, cta } = site.hero;
+---
+<section class="hero">
+  <span class="hero-eyebrow">{eyebrow}</span>
+  <h1 class="hero-title" set:html={title} />
+  <p class="hero-sub">{sub}</p>
+  <div class="hero-cta">
+    {cta.map(b => (
+      <a href={b.href} class={`btn${b.primary ? ' btn-primary' : ''}`} {...(b.href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}>
+        {b.label}
+      </a>
+    ))}
+  </div>
+  <div class="tech-chips">
+    {techStack.map(t => <span class="chip">{t}</span>)}
+  </div>
+</section>

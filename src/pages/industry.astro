@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { fetchAllFeeds, fetchFeed, fmtDate } from '../lib/aggregator';
+import { feeds } from '../config/feeds';
+
+// build 时拉取全部源, 失败兜底空
+const allItems = await fetchAllFeeds(feeds);
+
+// 同时按源分组 (每源最新 8 条), 便于按来源浏览
+const bySource = await Promise.all(
+  feeds.map(async (src) => ({
+    source: src,
+    items: (await fetchFeed(src)).slice(0, 8),
+  }))
+);
+
+const groups: Array<{ group: '国内' | '国际'; sources: typeof bySource }> = [
+  { group: '国内', sources: bySource.filter(s => s.source.group === '国内') },
+  { group: '国际', sources: bySource.filter(s => s.source.group === '国际') },
+];
+---
+<BaseLayout title="行业动态 | An0313" description="聚合前端行业资讯源, 持续关注技术动态">
+  <div class="industry-page">
+    <h1 class="page-title">行业动态</h1>
+    <p style="color:var(--fg-soft);margin:-12px 0 32px;font-size:.92rem;">
+      聚合自阮一峰、web.dev、V8、CSS-Tricks、JS Weekly、Hacker News、机器之心、Latent Space 等信息源, 每次构建自动刷新。前端工程与 AI 时代动态一起跟。
+    </p>
+
+    {allItems.length === 0 ? (
+      <p style="color:var(--fg-muted);padding:40px 0;text-align:center;">
+        资讯源暂时不可达 (网络受限或源站超时), 请稍后重试。
+      </p>
+    ) : (
+      <>
+        <section class="feed-group">
+          <h2 class="feed-group-title">最新汇总</h2>
+          <div class="feed-strip">
+            {allItems.slice(0, 12).map(item => (
+              <a class="feed-item" href={item.link} target="_blank" rel="noopener">
+                <span class="feed-source">{item.source}</span>
+                <span class="feed-title">{item.title}</span>
+                <span class="feed-date">{fmtDate(item.date)}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {groups.map(g => (
+          <section class="feed-group">
+            <h2 class="feed-group-title">{g.group}源</h2>
+            {g.sources.map(({ source, items }) => (
+              <div style="margin-bottom:20px;">
+                <div style="font-size:.82rem;color:var(--accent);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em;">
+                  {source.name}
+                </div>
+                {items.length === 0 ? (
+                  <p style="color:var(--fg-muted);font-size:.82rem;padding:4px 0;">(暂未拉取到)</p>
+                ) : (
+                  <div class="feed-strip">
+                    {items.map(item => (
+                      <a class="feed-item" href={item.link} target="_blank" rel="noopener">
+                        <span class="feed-date">{fmtDate(item.date)}</span>
+                        <span class="feed-title">{item.title}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </section>
+        ))}
+      </>
+    )}
+  </div>
+</BaseLayout>

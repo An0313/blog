@@ -1,0 +1,35 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const posts = (await getCollection('posts')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime()
+);
+
+// 按年分组
+const byYear = new Map<number, typeof posts>();
+for (const p of posts) {
+  const y = p.data.date.getFullYear();
+  if (!byYear.has(y)) byYear.set(y, []);
+  byYear.get(y)!.push(p);
+}
+const years = [...byYear.keys()].sort((a, b) => b - a);
+---
+<BaseLayout title="归档 | An0313">
+  <div class="section">
+    <h1 class="page-title">归档</h1>
+    {years.map(y => (
+      <section class="archive-group">
+        <h2 class="archive-year">{y} <span style="color:var(--fg-muted);font-size:.8rem">({byYear.get(y)!.length})</span></h2>
+        <ul class="archive-list">
+          {byYear.get(y)!.map(p => (
+            <li>
+              <span class="date">{p.data.date.toISOString().slice(0,10)}</span>
+              <a href={p.data.permalink || `/${p.id}/`}>{p.data.title}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+</BaseLayout>

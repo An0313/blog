@@ -1,0 +1,21 @@
+---
+const nav = [
+  { href: '/', label: '首页' },
+  { href: '/about/', label: '关于' },
+  { href: '/ai/', label: 'AI' },
+  { href: '/industry/', label: '资讯' },
+  { href: '/archives/', label: '归档' },
+  { href: '/tags/', label: '标签' },
+];
+const path = Astro.url.pathname;
+---
+<header class="site-header">
+  <div class="site-header-inner">
+    <a href="/" class="site-brand">An0313</a>
+    <nav class="site-nav">
+      {nav.map(item => (
+        <a href={item.href} aria-current={path === item.href ? 'page' : undefined}>{item.label}</a>
+      ))}
+    </nav>
+  </div>
+</header>

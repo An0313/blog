@@ -1,0 +1,32 @@
+---
+import { getCollection, render } from 'astro:content';
+import PostLayout from '../layouts/PostLayout.astro';
+
+// 文章详情路由: 用 front-matter 的 permalink 字段生成路径
+// permalink 形如 /2018/12/19/vue%E6%8F%92%E4%BB%B6%E5%BC%80%E5%8F%91/
+// 解码后拆成路径段, 交给 rest param, Astro 输出时会重新编码 -> 与原 Hexo URL 完全一致 (零 SEO 损失)
+export async function getStaticPaths() {
+  const posts = await getCollection('posts');
+  // 按日期升序, 便于计算上下篇
+  const sorted = [...posts].sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
+  return sorted.map((post, i) => {
+    const permalink = post.data.permalink || `/${post.id}/`;
+    // rest param 期望字符串, 用 / 连接成路径段 (中文 Astro 会自动 encodeURIComponent, 与原 Hexo URL 一致)
+    const slug = decodeURIComponent(permalink).replace(/^\/+|\/+$/g, '');
+    return {
+      params: { slug },
+      props: {
+        post,
+        prev: sorted[i - 1] ?? null, // 更早的一篇
+        next: sorted[i + 1] ?? null, // 更晚的一篇
+      },
+    };
+  });
+}
+
+const { post, prev, next } = Astro.props;
+const { Content } = await render(post);
+---
+<PostLayout post={post} prev={prev} next={next}>
+  <Content />
+</PostLayout>
