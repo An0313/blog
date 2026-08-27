@@ -9,7 +9,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  actions: write
 # 避免并发部署互相覆盖
 concurrency:
   group: pages
@@ -31,11 +30,6 @@ jobs:
         uses: withastro/action@v3
         with:
           path: ./
-      - name: Clear old artifact (避免 re-run 冲突)
-        uses: actions/delete-artifact@v5
-        with:
-          name: github-pages
-        continue-on-error: true
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
