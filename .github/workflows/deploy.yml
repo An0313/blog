@@ -30,10 +30,6 @@ jobs:
         uses: withastro/action@v3
         with:
           path: ./
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
   deploy:
     needs: build
     runs-on: ubuntu-latest
